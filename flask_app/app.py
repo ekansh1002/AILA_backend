@@ -25,6 +25,36 @@ directory = r"C:\Users\91938\Desktop\dataset\Object_casedocs"
 texts = []
 document_embeddings = []
 
+def process_documents():
+    global texts, document_embeddings
+    
+    for filename in os.listdir(directory):
+        if filename.endswith(".txt"):  # Assuming documents are in .txt format
+            file_path = os.path.join(directory, filename)
+            
+            # Read the document content
+            with open(file_path, 'r', encoding='utf-8') as file:
+                text = file.read()
+            
+            # Preprocess the document text
+            preprocessed_text = preprocess_text(text)
+            texts.append(preprocessed_text)
+            
+            # Tokenize and compute embedding for the document
+            encoded_text = tokenizer(preprocessed_text, truncation=True, padding='max_length', max_length=128, return_tensors='pt')
+            with torch.no_grad():
+                outputs = model(**encoded_text)
+                document_embedding = outputs.pooler_output.cpu().detach().numpy()
+            
+            # Store the document embedding
+            document_embeddings.append(document_embedding)
+
+    # Convert document_embeddings list to a numpy array for easier processing
+    document_embeddings = np.vstack(document_embeddings)
+
+# Process the documents when the application starts
+process_documents()
+
 @app.route('/query', methods=['POST'])
 def handle_query():
     global tokenizer, model, bart_tokenizer, bart_model, texts, document_embeddings
